@@ -315,6 +315,7 @@ For production deployment:
 ## Additional Notes
 
 - This is an educational project, so keep it simple but maintainable
+- [Implementation hints](https://cloud-dev-25.educ8.se/exercises/)
 - Document non-obvious design decisions
 - Consider adding XML documentation comments for public APIs
 - Review security best practices for ASP.NET Core applications
