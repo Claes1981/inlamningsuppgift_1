@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Constants
-RESOURCE_GROUP="MyOneClickGroup"
+RESOURCE_GROUP="Inlamning1Group"
 
 function log_error() {
     echo "ERROR: $1" >&2

@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 # Constants
-RESOURCE_GROUP="MyOneClickGroup"
-VM_NAME="MyOneClickVM"
+RESOURCE_GROUP="Inlamning1Group"
+VM_NAME="Inlamning1VM"
 LOCATION="northeurope"
 ZONE="3"
 VM_SIZE="Standard_F1als_v7"
