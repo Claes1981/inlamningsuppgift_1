@@ -34,14 +34,22 @@ Starts the application with file watching enabled - automatically restarts when 
 
 ### Testing
 
-Since this is a basic MVC application without dedicated test projects, tests would need to be added. For now:
+#### Creating Test Projects
+
+If testing infrastructure doesn't exist yet:
 
 ```bash
 dotnet new xunit -o Tests
 ```
-Creates a new XUnit test project if testing infrastructure needs to be established.
+Creates a new XUnit test project in the `Tests/` directory.
 
-To run tests once they exist:
+Add reference to your main project:
+
+```bash
+dotnet add Tests/Tests.csproj reference inlamningsuppgift_1.csproj
+```
+
+#### Running All Tests
 
 ```bash
 dotnet test
@@ -49,15 +57,63 @@ dotnet test
 Runs all tests in the solution.
 
 ```bash
+dotnet test --configuration Release
+```
+Runs tests in release configuration for better performance.
+
+```bash
+dotnet test --logger trx
+```
+Generates TRX format test results for CI systems.
+
+#### Filtering Tests
+
+```bash
 dotnet test --filter "Category=Integration"
 ```
-Example of running filtered tests (if categories are defined).
+Runs only integration tests.
 
-For running a single test class or method, you would typically use:
+```bash
+dotnet test --filter "Priority=High"
+```
+Runs only high priority tests.
+
+#### Running Specific Tests
+
+**By Fully Qualified Name:**
 
 ```bash
 dotnet test --filter "FullyQualifiedName=Tests.UnitTests.Controllers.HomeControllerTests.Index_Returns_View"
 ```
+
+**By Test Class:**
+
+```bash
+dotnet test --filter "FullyQualifiedName~Tests.UnitTests.Controllers.HomeControllerTests"
+```
+
+**By Method Name Pattern:**
+
+```bash
+dotnet test --filter "TestClassName~*&TestMethodName~Create*"
+```
+
+#### Debugging Tests
+
+```bash
+dotnet test --no-build
+```
+Skips building before running tests (faster when already built).
+
+```bash
+dotnet test /path/to/specific/test.dll
+```
+Runs tests from a specific DLL file.
+
+```bash
+dotnet test --verbosity normal
+```
+Shows detailed output during test execution.
 
 ### Code Analysis and Formatting
 
