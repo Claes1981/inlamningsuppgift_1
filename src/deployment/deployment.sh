@@ -1,4 +1,5 @@
 #!/bin/bash
+# Todo: adjust to this project
 set -e
 
 resource_group="DotNetDeployGroup"
