@@ -6,7 +6,7 @@ VM_NAME="MyOneClickVM"
 LOCATION="northeurope"
 ZONE="3"
 VM_SIZE="Standard_F1als_v7"
-CUSTOM_DATA_FILE="custom_data_nginx.sh"
+CUSTOM_DATA_FILE=""
 function log_error() {
     echo "ERROR: $1" >&2
     exit 1
