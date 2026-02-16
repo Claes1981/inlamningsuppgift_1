@@ -1,61 +1,141 @@
 #!/bin/bash
-# Todo: adjust to this project
-set -e
+set -euo pipefail
 
-resource_group="Inlamning1Group"
-vm_name="Inlamning1VM"
-location="northeurope"
+# Constants
+RESOURCE_GROUP="Inlamning1Group"
+VM_NAME="Inlamning1VM"
+LOCATION="northeurope"
 ZONE="3"
 VM_SIZE="Standard_F1als_v7"
-CUSTOM_DATA_FILE=""
+APP_NAME="HelloDotnet"
+PORT="5000"
+DOTNET_RUNTIME_VERSION="aspnetcore-runtime-10.0"
+INSTALL_DIR="/opt/dotnet-app"
+SERVICE_NAME="dotnet-app"
+USERNAME="azureuser"
 
-az group create --name $resource_group --location $location
+function log_error() {
+    echo "ERROR: $1" >&2
+    exit 1
+}
 
-az vm create \
-    --resource-group $resource_group \
-    --name $vm_name \
-    --image Ubuntu2404 \
-    --size "$VM_SIZE" \
-    --zone "$ZONE" \
-    --admin-username azureuser \
-    --generate-ssh-keys
+function create_resource_group() {
+    echo "Creating resource group: $RESOURCE_GROUP..."
+    if ! az group create --name "$RESOURCE_GROUP" --location "$LOCATION"; then
+        log_error "Failed to create resource group"
+    fi
+}
 
-az vm open-port --resource-group $resource_group --name $vm_name --port 5000
+function create_vm() {
+    echo "Creating virtual machine: $VM_NAME..."
+    if ! az vm create \
+        --resource-group "$RESOURCE_GROUP" \
+        --name "$VM_NAME" \
+        --image Ubuntu2404 \
+        --size "$VM_SIZE" \
+        --zone "$ZONE" \
+        --admin-username "$USERNAME" \
+        --generate-ssh-keys; then
+        log_error "Failed to create VM"
+    fi
+}
 
-vm_ip=$(az vm show -g $resource_group -n $vm_name --show-details --query publicIps -o tsv)
+function open_port() {
+    echo "Opening port $PORT for HTTP traffic..."
+    if ! az vm open-port --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --port "$PORT"; then
+        log_error "Failed to open port $PORT"
+    fi
+}
 
-dotnet new mvc -n HelloDotnet
-cd HelloDotnet
-dotnet publish -c Release -o ./publish
+function get_vm_ip() {
+    az vm show --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --show-details --query publicIps -o tsv
+}
 
-ssh azureuser@$vm_ip 'wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && sudo dpkg -i packages-microsoft-prod.deb && rm packages-microsoft-prod.deb && sudo apt update && sudo apt install -y aspnetcore-runtime-10.0'
+function setup_dotnet_runtime() {
+    local ip=$1
+    echo "Setting up .NET runtime on VM..."
+    if ! ssh "$USERNAME@$ip" "wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+        sudo dpkg -i packages-microsoft-prod.deb && \
+        rm packages-microsoft-prod.deb && \
+        sudo apt update && \
+        sudo apt install -y $DOTNET_RUNTIME_VERSION"; then
+        log_error ".NET runtime installation failed"
+    fi
+}
 
-ssh azureuser@$vm_ip 'sudo useradd --system --shell /usr/sbin/nologin --no-create-home dotnet-app; sudo mkdir -p /opt/dotnet-app; sudo chown azureuser:dotnet-app /opt/dotnet-app; sudo chmod 750 /opt/dotnet-app'
+function create_app_user() {
+    local ip=$1
+    echo "Creating application user and directory..."
+    if ! ssh "$USERNAME@$ip" "sudo useradd --system --shell /usr/sbin/nologin --no-create-home dotnet-app; \
+        sudo mkdir -p $INSTALL_DIR; \
+        sudo chown azureuser:dotnet-app $INSTALL_DIR; \
+        sudo chmod 750 $INSTALL_DIR"; then
+        log_error "Failed to create app user or directory"
+    fi
+}
 
-scp -r ./publish/* azureuser@$vm_ip:/opt/dotnet-app/
+function deploy_application() {
+    local ip=$1
+    echo "Deploying application files..."
+    if ! scp -r ./publish/* "$USERNAME@$ip:$INSTALL_DIR/"; then
+        log_error "Application deployment failed"
+    fi
+}
 
-ssh azureuser@$vm_ip 'sudo chown -R dotnet-app:dotnet-app /opt/dotnet-app'
+function set_permissions() {
+    local ip=$1
+    echo "Setting file permissions..."
+    if ! ssh "$USERNAME@$ip" "sudo chown -R dotnet-app:dotnet-app $INSTALL_DIR"; then
+        log_error "Failed to set permissions"
+    fi
+}
 
-ssh azureuser@$vm_ip 'sudo tee /etc/systemd/system/dotnet-app.service > /dev/null << EOF
-[Unit]
-Description=.NET MVC Application
-After=network.target
+function create_systemd_service() {
+    local ip=$1
+    echo "Creating systemd service..."
+    local service_config="[Unit]\nDescription=.NET MVC Application\nAfter=network.target\n\n[Service]\nType=simple\nUser=dotnet-app\nGroup=dotnet-app\nWorkingDirectory=$INSTALL_DIR\nExecStart=/usr/bin/dotnet $INSTALL_DIR/$APP_NAME.dll\nRestart=always\nRestartSec=5\nEnvironment=ASPNETCORE_URLS=http://0.0.0.0:$PORT\nEnvironment=ASPNETCORE_ENVIRONMENT=Production\n\n[Install]\nWantedBy=multi-user.target"
+    
+    if ! ssh "$USERNAME@$ip" "sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null << 'EOF'\n$service_config\nEOF"; then
+        log_error "Failed to create systemd service"
+    fi
+}
 
-[Service]
-Type=simple
-User=dotnet-app
-Group=dotnet-app
-WorkingDirectory=/opt/dotnet-app
-ExecStart=/usr/bin/dotnet /opt/dotnet-app/HelloDotnet.dll
-Restart=always
-RestartSec=5
-Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
-Environment=ASPNETCORE_ENVIRONMENT=Production
+function start_service() {
+    local ip=$1
+    echo "Starting application service..."
+    if ! ssh "$USERNAME@$ip" "sudo systemctl daemon-reload && \
+        sudo systemctl enable $SERVICE_NAME.service && \
+        sudo systemctl start $SERVICE_NAME.service"; then
+        log_error "Failed to start service"
+    fi
+}
 
-[Install]
-WantedBy=multi-user.target
-EOF'
+function build_and_publish_app() {
+    echo "Building and publishing .NET application..."
+    dotnet new mvc -n "$APP_NAME"
+    cd "$APP_NAME" || exit 1
+    dotnet publish -c Release -o ./publish
+}
 
-ssh azureuser@$vm_ip 'sudo systemctl daemon-reload && sudo systemctl enable dotnet-app.service && sudo systemctl start dotnet-app.service'
+function main() {
+    # Build the application first
+    build_and_publish_app
+    
+    # Provision infrastructure
+    create_resource_group
+    create_vm
+    open_port
+    vm_ip=$(get_vm_ip)
+    
+    # Deploy application
+    setup_dotnet_runtime "$vm_ip"
+    create_app_user "$vm_ip"
+    deploy_application "$vm_ip"
+    set_permissions "$vm_ip"
+    create_systemd_service "$vm_ip"
+    start_service "$vm_ip"
+    
+    echo "Deployment complete! Visit http://$vm_ip:$PORT/"
+}
 
-echo "Deployment complete! Visit http://$vm_ip:5000/"
+main
