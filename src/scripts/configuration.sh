@@ -46,14 +46,6 @@ function create_app_user() {
     fi
 }
 
-function deploy_application() {
-    local ip=$1
-    echo "Deploying application files..."
-    if ! scp -r ./publish/* "$USERNAME@$ip:$INSTALL_DIR/"; then
-        log_error "Application deployment failed"
-    fi
-}
-
 function set_permissions() {
     local ip=$1
     echo "Setting file permissions..."
@@ -72,35 +64,13 @@ function create_systemd_service() {
     fi
 }
 
-function start_service() {
-    local ip=$1
-    echo "Starting application service..."
-    if ! ssh "$USERNAME@$ip" "sudo systemctl daemon-reload && \
-        sudo systemctl enable $SERVICE_NAME.service && \
-        sudo systemctl start $SERVICE_NAME.service"; then
-        log_error "Failed to start service"
-    fi
-}
-
-function build_and_publish_app() {
-    echo "Building and publishing .NET application..."
-    dotnet new mvc -n "$APP_NAME"
-    cd "$APP_NAME" || exit 1
-    dotnet publish -c Release -o ./publish
-}
-
 function main() {
-    # Build the application first
-    build_and_publish_app
-       
-    # Deploy application
+
     vm_ip=$(get_vm_ip)
     setup_dotnet_runtime "$vm_ip"
     create_app_user "$vm_ip"
-    deploy_application "$vm_ip"
     set_permissions "$vm_ip"
     create_systemd_service "$vm_ip"
-    start_service "$vm_ip"
     
     echo "Deployment complete! Visit http://$vm_ip:$PORT/"
 }
