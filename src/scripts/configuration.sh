@@ -57,10 +57,33 @@ function set_permissions() {
 function create_systemd_service() {
     local ip=$1
     echo "Creating systemd service..."
-    local service_config="[Unit]\nDescription=.NET MVC Application\nAfter=network.target\n\n[Service]\nType=simple\nUser=dotnet-app\nGroup=dotnet-app\nWorkingDirectory=$INSTALL_DIR\nExecStart=/usr/bin/dotnet $INSTALL_DIR/$APP_NAME.dll\nRestart=always\nRestartSec=5\nEnvironment=ASPNETCORE_URLS=http://0.0.0.0:$PORT\nEnvironment=ASPNETCORE_ENVIRONMENT=Production\n\n[Install]\nWantedBy=multi-user.target"
     
-    if ! ssh "$USERNAME@$ip" "sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null << 'EOF'\n$service_config\nEOF"; then
-        log_error "Failed to create systemd service"
+    # Create the service file using a simple approach without complex quoting
+    if ! ssh "$USERNAME@$ip" "sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null" << EOF
+[Unit]
+Description=.NET MVC Application
+After=network.target
+
+[Service]
+Type=simple
+User=dotnet-app
+Group=dotnet-app
+WorkingDirectory=$INSTALL_DIR
+ExecStart=/usr/bin/dotnet \$INSTALL_DIR/\$APP_NAME.dll
+Restart=always
+RestartSec=5
+Environment=ASPNETCORE_URLS=http://0.0.0.0:\$PORT
+Environment=ASPNETCORE_ENVIRONMENT=Production
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    then
+        log_error "Failed to write systemd service configuration"
+    fi
+    
+    if ! ssh "$USERNAME@$ip" "sudo chmod 644 /etc/systemd/system/$SERVICE_NAME.service && sudo systemctl daemon-reload"; then
+        log_error "Failed to set permissions and reload systemd"
     fi
 }
 
