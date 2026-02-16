@@ -46,14 +46,6 @@ function create_app_user() {
     fi
 }
 
-function set_permissions() {
-    local ip=$1
-    echo "Setting file permissions..."
-    if ! ssh "$USERNAME@$ip" "sudo chown -R dotnet-app:dotnet-app $INSTALL_DIR"; then
-        log_error "Failed to set permissions"
-    fi
-}
-
 function create_systemd_service() {
     local ip=$1
     echo "Creating systemd service..."
@@ -92,7 +84,6 @@ function main() {
     vm_ip=$(get_vm_ip)
     setup_dotnet_runtime "$vm_ip"
     create_app_user "$vm_ip"
-    set_permissions "$vm_ip"
     create_systemd_service "$vm_ip"
     
     echo "Configuration complete!"
