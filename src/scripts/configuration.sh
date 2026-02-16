@@ -60,11 +60,11 @@ After=network.target
 Type=simple
 User=dotnet-app
 Group=dotnet-app
-WorkingDirectory=$INSTALL_DIR
-ExecStart=/usr/bin/dotnet \$INSTALL_DIR/\$APP_NAME.dll
+WorkingDirectory=/opt/dotnet-app
+ExecStart=/usr/bin/dotnet /opt/dotnet-app/HelloDotnet.dll
 Restart=always
 RestartSec=5
-Environment=ASPNETCORE_URLS=http://0.0.0.0:\$PORT
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=ASPNETCORE_ENVIRONMENT=Production
 
 [Install]
