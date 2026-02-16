@@ -95,7 +95,7 @@ function main() {
     set_permissions "$vm_ip"
     create_systemd_service "$vm_ip"
     
-    echo "Deployment complete! Visit http://$vm_ip:$PORT/"
+    echo "Configuration complete!"
 }
 
 main
