@@ -2,9 +2,12 @@
 # Todo: adjust to this project
 set -e
 
-resource_group="DotNetDeployGroup"
-vm_name="DotNetAppVM"
+resource_group="Inlamning1Group"
+vm_name="Inlamning1VM"
 location="northeurope"
+ZONE="3"
+VM_SIZE="Standard_F1als_v7"
+CUSTOM_DATA_FILE=""
 
 az group create --name $resource_group --location $location
 
@@ -12,7 +15,8 @@ az vm create \
     --resource-group $resource_group \
     --name $vm_name \
     --image Ubuntu2404 \
-    --size Standard_B1s \
+    --size "$VM_SIZE" \
+    --zone "$ZONE" \
     --admin-username azureuser \
     --generate-ssh-keys
 
