@@ -19,34 +19,6 @@ function log_error() {
     exit 1
 }
 
-function create_resource_group() {
-    echo "Creating resource group: $RESOURCE_GROUP..."
-    if ! az group create --name "$RESOURCE_GROUP" --location "$LOCATION"; then
-        log_error "Failed to create resource group"
-    fi
-}
-
-function create_vm() {
-    echo "Creating virtual machine: $VM_NAME..."
-    if ! az vm create \
-        --resource-group "$RESOURCE_GROUP" \
-        --name "$VM_NAME" \
-        --image Ubuntu2404 \
-        --size "$VM_SIZE" \
-        --zone "$ZONE" \
-        --admin-username "$USERNAME" \
-        --generate-ssh-keys; then
-        log_error "Failed to create VM"
-    fi
-}
-
-function open_port() {
-    echo "Opening port $PORT for HTTP traffic..."
-    if ! az vm open-port --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --port "$PORT"; then
-        log_error "Failed to open port $PORT"
-    fi
-}
-
 function get_vm_ip() {
     az vm show --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --show-details --query publicIps -o tsv
 }
@@ -120,14 +92,9 @@ function build_and_publish_app() {
 function main() {
     # Build the application first
     build_and_publish_app
-    
-    # Provision infrastructure
-    create_resource_group
-    create_vm
-    open_port
-    vm_ip=$(get_vm_ip)
-    
+       
     # Deploy application
+    vm_ip=$(get_vm_ip)
     setup_dotnet_runtime "$vm_ip"
     create_app_user "$vm_ip"
     deploy_application "$vm_ip"
