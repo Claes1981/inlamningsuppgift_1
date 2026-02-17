@@ -9,9 +9,9 @@ Tutorial
 
 ## "Delmoment 2"
 1. Prepare the provision of a virtual machine in Azure by first copy the [provision_vm.sh](https://github.com/Claes1981/inlamningsuppgift_1/blob/main/src/scripts/provision_vm.sh) script to your local computer. This script uses Azure CLI for the provisioning. The *Standard_F1als_v7* in *northeurope*, zone *3* virtual machine size were the cheapest available last time I checked.  
-With a script based provisioning method you apply Infrastructure as Code, which automatically gives you a documentation of exact (in principle) how the infrastucture is set up.
-2. Run the script to execute the provisioning. 
-3. Verify that the virtual machine is accessible by confirming that you can log in to the public ip address of the machine, provided by the script output, e g `ssh azureuser@ 52.155.250.77`.  
+With a script based provisioning method you apply Infrastructure as Code, which automatically gives you a documentation of exact (in principle) how the infrastructure is set up.
+2. Run the script to execute the provisioning.  If you previously have set up ssh keys on your computer, they will be used for authentication. That is more secure than e g exposing passwords in code, which could be read by unauthorized.
+3. Verify that the virtual machine is accessible by confirming that you can log in to the public ip address of the machine, provided by the script output, e g `ssh azureuser@ 52.155.250.77`.  By default port 22 are open to enable ssh access. The script also opens port 5000 since that port is used by the Kestrel web server on the virtual machine. You will use that port when later remotely connecting to your web app in the browser
 So far this solution only provide Infrastructure as a Service, since no application development tools are installed yet.
 
 ## "Delmoment 3"
@@ -36,7 +36,8 @@ So far this solution only provide Infrastructure as a Service, since no applicat
         WantedBy=multi-user.target  
 ```
       
-  The `After=network.target` line makes sure that the service is not started unless the network is available. The `Restart=always` line makes Systemd restart the app if it crashes.  
+  The `After=network.target` line makes sure that the service is not started unless the network is available. The `Restart=always` line makes Systemd restart the app if it crashes.    
+The configuration script also creates a dedicated application service user, which makes it possible to run the application as non-privileged user. That limits the potential damage if the application is compromised.
       
 2. Configure the environment by running the script.
 3. Verify that the .NET runtime environment was correctly installed by ssh into the machine again and run `dotnet --list-runtimes`.
