@@ -33,9 +33,9 @@ function create_vm() {
     fi
 }
 function open_port() {
-    echo "Opening port 80 for HTTP traffic..."
-    if ! az vm open-port --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --port 80; then
-        log_error "Failed to open port 80"
+    echo "Opening port 5000 for HTTP traffic..."
+    if ! az vm open-port --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --port 5000; then
+        log_error "Failed to open port 5000"
     fi
 }
 function get_vm_ip() {
