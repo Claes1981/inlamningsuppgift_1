@@ -46,6 +46,8 @@ So far this solution only provide Infrastructure as a Service, since no applicat
 The application files are transferred by the `deploy_application()`  function, or more precicely, the `scp -r ./publish/* "$USERNAME@$ip:$INSTALL_DIR/"` command, and the application is started as a service by the `sudo systemctl start $SERVICE_NAME.service"` command of the  `start_service()` function.
 2. Verify that the service is running by ssh into the machine once again and run `sudo systemctl status dotnet-app.service`.
 
+## "Delmoment 5"
+Verify that the application is accessible from the internet by opening, in a browser on your computer, the link with the public ip provided in the output of the `deployment.sh` script,  and test that the web app is working as expected.
 
 
 
