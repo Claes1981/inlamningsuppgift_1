@@ -6,6 +6,13 @@ This file provides guidelines for agentic coding agents working with this reposi
 
 This is an ASP.NET Core web application built with .NET 10.0. The project follows standard MVC (Model-View-Controller) patterns and uses Razor views for the frontend.
 
+### Key Features
+- **Framework**: ASP.NET Core MVC with Razor Pages
+- **.NET Version**: 10.0
+- **Architecture**: MVC pattern
+- **Frontend**: Razor Views
+- **Build System**: MSBuild via dotnet CLI
+
 ## Build, Lint, and Test Commands
 
 ### Building the Application
@@ -79,6 +86,8 @@ Verifies that code already conforms to formatting standards without making chang
 2. **Simplicity**: Keep code simple, readable, and maintainable
 3. **Type Safety**: Leverage .NET's strong typing features
 4. **Null Safety**: Use nullable reference types throughout
+5. **Security**: Never log or expose sensitive information
+6. **Documentation**: Add XML comments for public APIs
 
 ### C# Coding Standards
 
@@ -104,6 +113,7 @@ using inlamningsuppgift_1.Models;
 - **Private fields**: camelCase with underscore prefix (e.g., `_logger`, `_service`)
 - **Constants**: UPPERCASE_WITH_UNDERSCORES (e.g., `MAX_RETRIES`, `DEFAULT_TIMEOUT`)
 - **Interfaces**: I prefix followed by PascalCase (e.g., `ILogger`, `IService`)
+- **Enums**: PascalCase (e.g., `OrderStatus`, `UserRole`)
 
 #### Bracing and Indentation
 
@@ -116,6 +126,13 @@ using inlamningsuppgift_1.Models;
 ```csharp
 public class HomeController : Controller
 {
+    private readonly ILogger<HomeController> _logger;
+
+    public HomeController(ILogger<HomeController> logger)
+    {
+        _logger = logger;
+    }
+
     public IActionResult Index()
     {
         return View();
@@ -131,6 +148,7 @@ The project has nullable reference types enabled (`<Nullable>enable</Nullable>`)
 - Annotate parameters that can be null: `string? name`
 - Annotate return values appropriately: `User? GetUser(int id)` vs `User GetCurrentUser()`
 - Use null-forgiving operator (`!`) sparingly when you're certain a value is non-null
+- Avoid using `!` - refactor code to properly handle nullability instead
 
 #### Error Handling
 
@@ -140,6 +158,15 @@ The project has nullable reference types enabled (`<Nullable>enable</Nullable>`)
 - Wrap external calls in try-catch blocks
 - Log errors appropriately using dependency injection
 - Don't swallow exceptions unless absolutely necessary
+- Include meaningful error messages in exceptions
+- Clean up resources in finally blocks or use `using` statements
+
+#### Async/Await Patterns
+
+- Always use async/await for I/O operations
+- Name async methods with "Async" suffix
+- Avoid `.Result` or `.Wait()` - they cause deadlocks
+- ConfigureAwait(false) should only be used in library code, not application code
 
 ### ASP.NET Core Specific Guidelines
 
@@ -150,6 +177,8 @@ The project has nullable reference types enabled (`<Nullable>enable</Nullable>`)
 - Validate model state before processing
 - Return appropriate status codes
 - Use async/await for I/O operations
+- Inject dependencies via constructor injection
+- Use [FromServices] attribute for method-level service injection if needed
 
 **Good Pattern:**
 ```csharp
@@ -182,6 +211,7 @@ public async Task<IActionResult> Create(CreateModel model)
 - Separate concerns between layout and content views
 - Use partial views for reusable components
 - Follow the existing pattern of placing views in `/Views/[ControllerName]/`
+- Use `_ViewImports.cshtml` for common directives
 
 **View Imports Convention:**
 ```razor
@@ -196,6 +226,7 @@ public async Task<IActionResult> Create(CreateModel model)
 - Use data annotations for validation: `[Required]`, `[StringLength]`, etc.
 - Consider using FluentValidation for complex validation scenarios
 - Keep DTOs separate from domain entities when needed
+- Use records for immutable data transfer objects
 
 **Example:**
 ```csharp
@@ -209,6 +240,27 @@ public class ErrorViewModel
 }
 ```
 
+#### Services
+
+- Place services in the `Services/` directory
+- Implement interfaces for all services
+- Use dependency injection for service registration
+- Keep services focused on single responsibilities
+- Handle exceptions appropriately and let them bubble up to controllers
+
+### Project Structure
+
+```
+src/
+├── Controllers/       # MVC controllers
+├── Models/            # Data models and view models
+├── Services/          # Business logic services
+├── Views/             # Razor view files
+│   └── [Controller]/  # Controller-specific views
+├── wwwroot/           # Static files (CSS, JS, images)
+└── Program.cs         # Application entry point
+```
+
 ## Development Workflow
 
 1. **Branch Strategy**: Create feature branches from main/develop
@@ -216,6 +268,8 @@ public class ErrorViewModel
 3. **Code Reviews**: All changes require review before merging
 4. **Documentation**: Update documentation as part of code changes
 5. **Testing**: Add tests for new functionality and ensure existing tests pass
+6. **Formatting**: Run `dotnet format` before committing
+7. **Security**: Never commit secrets or sensitive information
 
 ## Tools and Dependencies
 
@@ -223,3 +277,16 @@ public class ErrorViewModel
 - **Entity Framework Core**: For data access (if used)
 - **Razor Pages**: For server-side rendering
 - **ASP.NET Core MVC**: For model-view-controller pattern implementation
+
+## Deployment
+
+The project includes deployment scripts in `/src/scripts/`:
+
+- `provision_vm.sh`: Creates Azure VM with required resources
+- `configuration.sh`: Configures .NET runtime and sets up systemd service
+- `deployment.sh`: Publishes and deploys application to VM
+
+To deploy:
+1. Run provisioning script: `./src/scripts/provision_vm.sh`
+2. Configure environment: `./src/scripts/configuration.sh`
+3. Deploy application: `./src/scripts/deployment.sh`
