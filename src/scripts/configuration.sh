@@ -7,7 +7,7 @@ VM_NAME="Inlamning1VM"
 LOCATION="northeurope"
 ZONE="3"
 VM_SIZE="Standard_F1als_v7"
-APP_NAME="HelloDotnet"
+APP_NAME="inlamningsuppgift_1"
 PORT="5000"
 DOTNET_RUNTIME_VERSION="aspnetcore-runtime-10.0"
 INSTALL_DIR="/opt/dotnet-app"
@@ -61,7 +61,7 @@ Type=simple
 User=dotnet-app
 Group=dotnet-app
 WorkingDirectory=/opt/dotnet-app
-ExecStart=/usr/bin/dotnet /opt/dotnet-app/HelloDotnet.dll
+ExecStart=/usr/bin/dotnet /opt/dotnet-app/inlamningsuppgift_1.dll
 Restart=always
 RestartSec=5
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
